@@ -1,0 +1,65 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "oss-compliance-skill"
+version = "1.0.0"
+description = "Standalone OSS compliance scanning skills for development environments"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [
+    {name = "Development Team", email = "dev@example.com"}
+]
+keywords = ["oss", "compliance", "scanning", "devin", "claude", "ai-assistant"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "requests>=2.31.0",
+    "PyYAML>=6.0.1",
+    "urllib3>=2.0.0",
+    "cryptography>=41.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+    "mypy>=1.5.0",
+]
+
+enhanced = [
+    "beautifulsoup4>=4.12.0",
+    "lxml>=4.9.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/your-org/oss-compliance-skill"
+Documentation = "https://github.com/your-org/oss-compliance-skill/docs"
+Repository = "https://github.com/your-org/oss-compliance-skill"
+"Bug Tracker" = "https://github.com/your-org/oss-compliance-skill/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.black]
+line-length = 100
+target-version = ['py39', 'py310', 'py311']
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
