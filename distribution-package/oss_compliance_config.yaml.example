@@ -1,0 +1,30 @@
+# OSS Compliance Configuration Example
+# Copy this file to oss_compliance_config.yaml and customize for your environment
+
+# GitHub Configuration (required for remote scanning)
+github:
+  api_url: https://api.github.com  # or your GitHub Enterprise URL
+  org: your-organization           # your GitHub organization
+  token: your_github_token          # GitHub personal access token
+
+# Jenkins Configuration (optional, for enhanced scanning)
+jenkins:
+  url: https://your-jenkins-server.com
+  user: your-username
+  token: your_jenkins_token
+
+# Artifactory Configuration (optional, for compliance recommendations)
+artifactory:
+  base_url: artifactory.example.com
+  virtual_repos:
+    npm: npm-virtual
+    pypi: pypi-virtual
+    maven: maven-virtual
+    docker: docker-virtual
+    go: go-virtual
+
+# SSL Verification (set to true for production environments)
+ssl_verify: false
+
+# Cache TTL for repository lists (hours)
+cache_ttl_hours: 24
