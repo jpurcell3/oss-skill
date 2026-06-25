@@ -1,0 +1,28 @@
+github:
+  api_url: https://eos2git.cec.lab.emc.com/api/v3
+  org: ISG-Edge
+
+jenkins:
+  url: https://osj-isg-03-prd.cec.delllabs.net
+  # Optional. Prefer env vars JENKINS_USER / JENKINS_TOKEN.
+  # user:
+  # token:
+
+artifactory:
+  base_url: isgedge.artifactory.cec.lab.emc.com
+  virtual_repos:
+    npm: isgedge-npm-virtual
+    pypi: isgedge-pypi-virtual
+    maven: isgedge-maven-virtual
+    docker: isgedge-docker-virtual
+    go: isgedge-go-virtual
+    helm: isgedge-helm-virtual
+    rpm: isgedge-rpm-virtual
+    factoryos: isgedge-factoryos-virtual
+    debian: isgedge-manufacturing-debian-virtual
+
+policy:
+  npm_registry_url: "https://{base}/artifactory/api/npm/{npm}/"
+  pypi_simple_url: "https://{base}/artifactory/api/pypi/{pypi}/simple/"
+  maven_repo_url: "https://{base}/artifactory/{maven}/"
+  go_proxy_url: "https://{base}/artifactory/api/go/{go}/"

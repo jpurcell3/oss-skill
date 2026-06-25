@@ -1,0 +1,20 @@
+name: oss-check
+version: 1.0.0
+description: OSS compliance checker — scan repositories for open source software compliance issues using Artifactory and package manager configuration analysis
+author: jpurcell
+role: engineering
+domain: engineering
+tags:
+  - oss
+  - compliance
+  - artifactory
+  - package-management
+  - security
+  - dependencies
+  - github
+  - jenkins
+dependencies:
+  - github-ops
+status: active
+created: 2026-06-25
+updated: 2026-06-25

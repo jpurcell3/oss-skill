@@ -1,0 +1,21 @@
+name: github-ops
+version: 1.0.0
+description: GitHub operations manager — manage PRs, issues, repositories, workflows, runs, authentication, and more
+author: zhoux16
+role: engineering
+domain: engineering
+tags:
+  - github
+  - gh-cli
+  - pull-requests
+  - issues
+  - repositories
+  - workflows
+  - github-actions
+  - ci-cd
+  - authentication
+  - operations
+dependencies: []
+status: active
+created: 2026-04-16
+updated: 2026-04-16
