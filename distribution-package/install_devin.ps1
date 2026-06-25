@@ -20,15 +20,15 @@ Write-Host "📋 Copying skill files..." -ForegroundColor Yellow
 Copy-Item -Recurse "$scriptDir\skills\$skillName" "$devinSkillsDir\" -Force
 
 # Copy CLI tool (optional)
-if (Test-Path "$scriptDir\oss_compliance.py") {
+if (Test-Path "$scriptDir\oss_check.py") {
     Write-Host "🔧 Copying CLI tool..." -ForegroundColor Yellow
-    Copy-Item "$scriptDir\oss_compliance.py" "$devinSkillsDir\$skillName\" -Force
+    Copy-Item "$scriptDir\oss_check.py" "$devinSkillsDir\$skillName\" -Force
 }
 
 # Copy configuration template (optional)
-if (Test-Path "$scriptDir\oss_compliance_config.yaml.example") {
+if (Test-Path "$scriptDir\oss_check_config.yaml.example") {
     Write-Host "⚙️  Copying configuration template..." -ForegroundColor Yellow
-    Copy-Item "$scriptDir\oss_compliance_config.yaml.example" "$devinSkillsDir\$skillName\" -Force
+    Copy-Item "$scriptDir\oss_check_config.yaml.example" "$devinSkillsDir\$skillName\" -Force
 }
 
 Write-Host "✅ OSS Check Skill installed successfully!" -ForegroundColor Green

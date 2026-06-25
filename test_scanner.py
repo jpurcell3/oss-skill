@@ -52,19 +52,25 @@ def test_reporter():
         'repository_name': 'test-repo',
         'scan_type': 'basic',
         'scan_timestamp': '2026-06-23T19:07:53',
-        'total_items': 10,
-        'compliant_items': 8,
-        'non_compliant_items': 2,
+        'total_components': 10,
+        'compliant_components': 8,
+        'non_compliant_components': 2,
         'compliance_percentage': 80.0,
-        'total_findings': 2,
-        'findings': [
+        'component_mappings': [
             {
-                'file': 'package.json',
-                'type': 'node_package',
-                'issue': 'No NPM registry configured',
-                'severity': 'HIGH',
-                'recommended_action': 'Configure NPM registry',
-                'compliant': False
+                'component': {
+                    'name': 'test-package',
+                    'version': '1.0.0',
+                    'ecosystem': 'npm',
+                    'source_file': 'package.json'
+                },
+                'compliance_status': 'non_compliant',
+                'actual_endpoint': {
+                    'url': 'npmjs.org',
+                    'type': 'direct_public',
+                    'compliant': False
+                },
+                'recommendations': ['Configure NPM registry']
             }
         ]
     }

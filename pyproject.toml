@@ -3,9 +3,9 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "oss-check-skill"
+name = "oss-check"
 version = "1.0.0"
-description = "OSS Check Skill - Standalone OSS compliance scanning for AI agents and development environments"
+description = "OSS Check - Standalone OSS compliance scanning for AI agents and development environments"
 readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}
@@ -46,22 +46,22 @@ enhanced = [
 ]
 
 [project.scripts]
-oss-check = "oss_compliance:main"
+oss-check = "oss_check:main"
 
 [project.urls]
-Homepage = "https://github.com/your-org/oss-check-skill"
-Documentation = "https://github.com/your-org/oss-check-skill/docs"
-Repository = "https://github.com/your-org/oss-check-skill"
-"Bug Tracker" = "https://github.com/your-org/oss-check-skill/issues"
+Homepage = "https://github.com/your-org/oss-check"
+Documentation = "https://github.com/your-org/oss-check/docs"
+Repository = "https://github.com/your-org/oss-check"
+"Bug Tracker" = "https://github.com/your-org/oss-check/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
-oss_compliance = ["*.yaml.example"]
+oss_check = ["*.yaml.example"]
 
 [tool.setuptools.package-dir]
-oss_compliance = "src/oss_compliance"
+oss_check = "src/oss_compliance"
 
 [tool.setuptools]
 include-package-data = true

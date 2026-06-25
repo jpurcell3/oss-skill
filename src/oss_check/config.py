@@ -26,7 +26,7 @@ class ComplianceConfig:
         Args:
             config_file: Path to YAML configuration file (optional)
         """
-        self.config_file = config_file or os.getenv('OSS_COMPLIANCE_CONFIG', 'oss_compliance_config.yaml')
+        self.config_file = config_file or os.getenv('OSS_CHECK_CONFIG', 'oss_check_config.yaml')
         self.config = self._load_config()
         
     def _load_config(self) -> Dict:

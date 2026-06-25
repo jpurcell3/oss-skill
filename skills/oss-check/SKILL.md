@@ -41,8 +41,8 @@ Invoke this skill when:
 ```bash
 # Add to your project (standalone usage)
 cd your-project/
-git clone <oss-compliance-skill-repo> oss-compliance-skill
-cd oss-compliance-skill
+git clone <oss-check-repo> oss-check
+cd oss-check
 pip install -e .
 ```
 
@@ -353,11 +353,11 @@ Add to `.devin/instructions.md`:
 ## OSS Compliance Scanning
 
 To scan repositories for OSS compliance:
-- "Invoke the oss-compliance skill to scan [repository-name]"
-- "Use oss-compliance to check compliance of [repository-name]"
+- "Invoke the oss-check skill to scan [repository-name]"
+- "Use oss-check to check compliance of [repository-name]"
 - "Run OSS compliance scan on [repository-name]"
 
-The skill is located at: oss-compliance-skill/
+The skill is located at: oss-check/
 ```
 
 ### Claude Integration
@@ -426,7 +426,7 @@ python -m oss_compliance scan --local /path/to/test/repo
 ### Skill Not Found
 
 **Problem**: Skill not loading in AI agent  
-**Solution**: Verify skill file exists at `oss-compliance-skill/` and is properly configured in agent instructions
+**Solution**: Verify skill file exists at `oss-check-skill/` and is properly configured in agent instructions
 
 ### Configuration Issues
 
