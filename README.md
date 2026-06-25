@@ -25,8 +25,7 @@ Once installed, invoke the skill in your AI assistant:
 @oss-check fusion-stage
 ```
 
-See the skill documentation for detailed usage:
-- `.agents/skills/engineering/oss-check/SKILL.md`
+See the [User Guide](USER_GUIDE.md) for detailed usage instructions and configuration.
 
 ## Configuration
 
