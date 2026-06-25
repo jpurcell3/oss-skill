@@ -39,6 +39,7 @@ Thumbs.db
 # Configuration files with sensitive data
 *_config.yaml
 .env
+config.yaml
 
 # Agent bridge directories (local only)
 .devin/
