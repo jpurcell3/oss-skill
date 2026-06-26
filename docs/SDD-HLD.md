@@ -6,123 +6,91 @@ The OSS Check skill is an AI assistant skill that performs open source software 
 
 ### 1.1 Current Architecture
 
-The skill currently exists in two forms with a **mismatch** between definition and implementation:
+The skill is implemented as a **self-contained, lightweight scanner** (Option A):
 
-**Skill Definition (AgentOps):**
-- Location: `AgentOps/global/skills/engineering/oss-check/`
-- Name: `oss-check`
-- Described as: "lightweight, agent-native" using platform tooling (GitHub CLI, Jenkins HTTP APIs)
-- Expected behavior: Agent orchestrates scanning using existing platform tools
+**Implementation (projects/oss-skill):**
+- Location: `projects/oss-skill/oss_check.py`
+- Implementation: Complete scanning implementation with direct API integrations
+- Components:
+  - `OSSScannerOrchestrator`: Main scanning orchestrator
+  - Ecosystem scanners: NPM, Python, Maven, Go
+  - `JenkinsAnalyzer`: Jenkins runtime evidence extraction
+  - `GitHubAPIClient`: GitHub API integration
+  - `JenkinsAPIClient`: Jenkins API integration
+- Dependencies: No external service dependencies
+- Deployment: Standalone CLI or AgentOps skill
 
-**Actual Implementation (projects/oss-skill):**
-- Location: `projects/oss-skill/simple_oss_check.py`
-- Implementation: Wrapper script that imports `RemoteRepositoryScanner` from `oss-compliance-webapp`
-- Actual behavior: Delegates to heavy Python scanner with comprehensive compliance logic
-- Dependencies: Requires `oss-compliance-webapp` project to be available locally
+**Features:**
+- Multi-ecosystem support (NPM, Python, Maven, Go)
+- Optional transitive dependency parsing (package-lock.json, yarn.lock, pnpm-lock.yaml)
+- Jenkins runtime evidence with multi-strategy job matching (5 strategies)
+- Artifactory allowlist support for multiple hosts
+- Compliance statuses: COMPLIANT, COMPLIANT_RUNTIME, TRANSLATED, NON_COMPLIANT
+- Large file handling (automatic fallback to raw GitHub API)
+- Flexible output formats (terminal, markdown, JSON)
 
-### 1.2 Problem Statement
+## 2. Architecture Decision: Option A (Self-Contained)
 
-The current implementation does not follow the AgentOps skill architecture:
-1. The skill definition describes a lightweight approach, but implementation uses heavy scanner
-2. The skill is not self-contained - depends on external `oss-compliance-webapp` project
-3. No clear distribution mechanism - users must have multiple repos available
-4. Unclear whether `oss-compliance-webapp` should run as a service or be imported as library
-5. Not aligned with AgentOps skill distribution patterns
+### 2.1 Rationale
 
-## 2. Architecture Options
+The self-contained approach was chosen for the following reasons:
 
-### Option A: Self-Contained Lightweight Skill (Align with SKILL.md)
+1. **Simplicity**: No external service dependencies, easier deployment and troubleshooting
+2. **Performance**: Direct API calls, no network overhead between skill and service
+3. **Control**: Full control over scanning logic, easier to customize and extend
+4. **AgentOps Alignment**: Follows AgentOps skill patterns for lightweight, self-contained skills
+5. **Distribution**: Simple to distribute as part of AgentOps or standalone CLI
+6. **Maintainability**: Single codebase, no version compatibility issues between skill and service
 
-Implement the skill as described in SKILL.md - using agent orchestration with platform tools:
+### 2.2 Architecture Diagram
 
-**Components:**
-- Skill script: Implements scanning logic using GitHub API, Jenkins API, and Artifactory API calls
-- No external scanner dependency
-- Agent makes direct API calls to gather evidence
-
-**Pros:**
-- Self-contained, easy to distribute
-- Lightweight, fast execution
-- Matches AgentOps skill pattern
-- No external service dependencies
-
-**Cons:**
-- Less comprehensive than full scanner
-- Would need to re-implement scanning logic
-- May miss some edge cases handled by full scanner
-
-**Distribution:**
-- Single skill package in AgentOps
-- Install via AgentOps skill distribution mechanism
-- Configuration via skill's config.yaml
-
-### Option B: Service-Based Architecture
-
-Keep the current approach but properly architect it as a service:
-
-**Components:**
-1. **OSS Compliance Service** (`oss-compliance-webapp`):
-   - Runs as a Flask web service
-   - Exposes REST API for scanning operations
-   - Can be deployed as container or local service
-
-2. **OSS Check Skill** (`oss-skill`):
-   - Lightweight wrapper that calls OSS Compliance Service API
-   - Handles configuration and result formatting
-   - Distributed as part of AgentOps
-
-**Pros:**
-- Leverages existing comprehensive scanner
-- Service can be shared across multiple skills/users
-- Scanner can be updated independently
-- Supports both local and container deployment
-
-**Cons:**
-- Requires service to be running
-- More complex deployment
-- Network dependency between skill and service
-- Not truly self-contained
-
-**Distribution:**
-- Skill: Distributed via AgentOps
-- Service: Distributed as Docker image or Python package with installation instructions
-
-### Option C: Library-Based Distribution
-
-Package `oss-compliance-webapp` as a Python library and include as dependency:
-
-**Components:**
-- Package `oss-compliance-webapp` as installable Python package
-- Skill includes it as dependency in requirements.txt/pyproject.toml
-- Skill imports scanner classes directly
-
-**Pros:**
-- Still comprehensive scanning
-- No network dependency
-- Simpler than service-based
-- Can be versioned and updated
-
-**Cons:**
-- Larger skill distribution size
-- Python dependency management
-- Still not "lightweight"
-- May have conflicting dependencies with other skills
-
-**Distribution:**
-- Skill package with scanner library as dependency
-- Install via pip + AgentOps skill installation
-
-## 3. Recommended Architecture: Option B (Service-Based)
-
-### 3.1 Rationale
-
-Given the existing investment in `oss-compliance-webapp` and its comprehensive scanning capabilities, the service-based approach offers the best balance:
-
-1. **Leverages Existing Investment**: The full scanner is already built and tested
-2. **Separation of Concerns**: Service handles scanning, skill handles orchestration
-3. **Flexibility**: Service can be deployed locally or as container
-4. **Shareability**: Multiple skills/users can use the same service
-5. **AgentOps Alignment**: Skill remains lightweight and follows agent patterns
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     AI Assistant (Cascade)                   │
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+                           │ @oss-check fusion-stage
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│              OSS Check Skill (oss_check.py)                   │
+│  - OSSScannerOrchestrator                                    │
+│  - ConfigLoader                                              │
+│  - CLI Argument Parsing                                       │
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+                           │ Direct API Calls
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    Scanner Components                         │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │ Ecosystem Scanners                                  │   │
+│  │  - NPMEcosystem (package.json, package-lock.json)    │   │
+│  │  - PythonEcosystem (requirements.txt, pyproject.toml) │   │
+│  │  - MavenEcosystem (pom.xml)                           │   │
+│  │  - GoEcosystem (go.mod)                               │   │
+│  └──────────────────────────────────────────────────────┘   │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │ JenkinsAnalyzer                                     │   │
+│  │  - Multi-strategy job matching (5 strategies)         │   │
+│  │  - Console output parsing                           │   │
+│  │  - Runtime evidence extraction                       │   │
+│  └──────────────────────────────────────────────────────┘   │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │ GitHubAPIClient                                      │   │
+│  │  - Manifest detection                                │   │
+│  │  - File content retrieval (with large file support)  │   │
+│  │  - Repository listing                                │   │
+│  └──────────────────────────────────────────────────────┘   │
+└──────────┬─────────────────────────────────┬────────────────┘
+           │                                 │
+           │                                 │
+           ▼                                 ▼
+┌──────────────────┐              ┌──────────────────┐
+│  Jenkins Server  │              │  GitHub API      │
+│  - Runtime       │              │  - Repo Files   │
+│    Evidence      │              │  - Configs      │
+└──────────────────┘              └──────────────────┘
+```
 
 ### 3.2 Architecture Diagram
 
@@ -163,35 +131,92 @@ Given the existing investment in `oss-compliance-webapp` and its comprehensive s
 └──────────────────┘              └──────────────────┘
 ```
 
-### 3.3 Component Details
+### 2.3 Component Details
 
-#### 3.3.1 OSS Check Skill (AgentOps)
+#### 2.3.1 OSSScannerOrchestrator
 
-**Location:** `AgentOps/global/skills/engineering/oss-check/`
-
-**Files:**
-- `SKILL.md` - Skill definition and usage
-- `skill.yaml` - Skill metadata
-- `config.yaml` - Configuration (GitHub, Jenkins, Artifactory)
-- `simple_oss_check.py` - Skill implementation (moved from projects/oss-skill)
+**Location:** `oss_check_impl/core/scanner.py`
 
 **Responsibilities:**
-- Load configuration from config.yaml
-- Parse user input (repo name, options)
-- Call OSS Compliance Service API
-- Format and display results
-- Handle errors gracefully
+- Coordinate scanning workflow across all phases
+- Manage ecosystem scanners
+- Apply Jenkins runtime evidence
+- Assess compliance status
+- Generate findings and recommendations
 
-**Configuration:**
+**Phases:**
+1. Manifest detection (package.json, requirements.txt, pom.xml, go.mod, lockfiles)
+2. Manifest parsing and component extraction
+3. Registry configuration analysis (npmrc, pip.conf, etc.)
+4. Jenkins runtime evidence (optional)
+5. Compliance assessment
+6. Findings generation
+
+#### 2.3.2 Ecosystem Scanners
+
+**Location:** `oss_check_impl/ecosystems/`
+
+**NPMEcosystem:**
+- Detects: package.json, package-lock.json, yarn.lock, pnpm-lock.yaml
+- Parses: Direct and transitive dependencies (optional)
+- Detects registry config: .npmrc
+
+**PythonEcosystem:**
+- Detects: requirements.txt, pyproject.toml, Pipfile, setup.py
+- Parses: Direct dependencies
+- Detects registry config: pip.conf, pip.ini, pyproject.toml
+
+**MavenEcosystem:**
+- Detects: pom.xml
+- Parses: Direct dependencies
+- Detects registry config: pom.xml (repositories section)
+
+**GoEcosystem:**
+- Detects: go.mod, go.sum
+- Parses: Direct dependencies
+- Detects registry config: go.mod (proxy directives)
+
+#### 2.3.3 JenkinsAnalyzer
+
+**Location:** `oss_check_impl/core/jenkins_analyzer.py`
+
+**Responsibilities:**
+- List all Jenkins jobs
+- Match jobs to repository using 5 strategies:
+  1. Exact substring match
+  2. Normalized name match
+  3. Word-based match
+  4. Acronym match
+  5. GitHub URL in job console output
+- Extract runtime evidence from job console output
+- Extract registry endpoints from job configs
+- Prefer Artifactory endpoints over other registries
+
+#### 2.3.4 GitHubAPIClient
+
+**Location:** `oss_check_impl/utils/github_api.py`
+
+**Responsibilities:**
+- Get repository contents
+- Get file content (with large file support)
+- List files recursively
+- Detect manifest files
+- Handle GitHub Enterprise API differences
+
+**Large File Handling:**
+- Files >1MB trigger automatic fallback to raw content endpoint
+- Supports both GitHub.com and GitHub Enterprise raw URL formats
+
+#### 2.3.5 Configuration
+
+**Location:** `config.yaml`
+
+**Configuration Structure:**
 ```yaml
-service:
-  url: http://localhost:5000  # OSS Compliance Service URL
-  timeout: 300  # seconds
-
 github:
   api_url: https://eos2git.cec.lab.emc.com/api/v3
   org: ISG-Edge
-  token: ${GITHUB_TOKEN}  # or from config
+  token: ${GITHUB_TOKEN}  # or set directly
 
 jenkins:
   url: https://osj-isg-03-prd.cec.delllabs.net
@@ -200,94 +225,72 @@ jenkins:
 
 artifactory:
   base_url: isgedge.artifactory.cec.lab.emc.com
+  allowed_hosts:
+    - isgedge.artifactory.cec.lab.emc.com
+    - hopjpd.artifactory.cec.lab.emc.com
   virtual_repos:
     npm: isgedge-npm-virtual
     pypi: isgedge-pypi-virtual
-    # ... other repos
+    maven: isgedge-maven-virtual
+    go: isgedge-go-virtual
+
+policy:
+  npm_registry_url: "https://{base}/artifactory/api/npm/{npm}/"
+  pypi_simple_url: "https://{base}/artifactory/api/pypi/{pypi}/simple/"
+  maven_repo_url: "https://{base}/artifactory/{maven}/"
+  go_proxy_url: "https://{base}/artifactory/api/go/{go}/"
+  include_transitive_deps: true
 ```
 
-#### 3.3.2 OSS Compliance Service
+**Environment Variables:**
+- `GITHUB_TOKEN` - GitHub personal access token
+- `JENKINS_USER` - Jenkins username
+- `JENKINS_TOKEN` - Jenkins API token
 
-**Location:** `projects/oss-compliance-webapp/`
+## 3. Dependencies
 
-**Components:**
-- Flask web service exposing REST API
-- Existing scanner classes (`RemoteRepositoryScanner`, `ComplianceScanner`)
-- Jenkins integration
-- GitHub integration
-- Artifactory validation
-
-**API Endpoints:**
-```
-POST /api/scan
-Request body:
-{
-  "repo_name": "fusion-stage",
-  "include_jenkins": true,
-  "verbose": false,
-  "config": {
-    "github": {...},
-    "jenkins": {...},
-    "artifactory": {...}
-  }
-}
-
-Response:
-{
-  "summary": {
-    "total_components": 256,
-    "compliant": 179,
-    "non_compliant": 77,
-    "compliance_percentage": 69.9
-  },
-  "findings": [...],
-  "recommendations": [...],
-  "verbose_details": {...}  # if verbose=true
-}
-```
-
-**Deployment Options:**
-1. **Local Development:** `python app.py` runs service on localhost:5000
-2. **Container:** Docker image with service
-3. **Production:** Deployed to internal server/container registry
-
-## 4. Dependencies
-
-### 4.1 Skill Dependencies
+### 3.1 Python Dependencies
 - Python 3.8+
-- `requests` library (for HTTP calls to service)
-- AgentOps framework (for skill distribution)
+- `PyYAML` - Configuration parsing
+- `requests` - HTTP client for API calls
+- `urllib3` - URL handling
 
-### 4.2 Service Dependencies
-- Python 3.8+
-- Flask
-- PyGithub
-- Requests
-- Jenkins API libraries
-- Existing scanner dependencies
-
-### 4.3 External Dependencies
-- GitHub Enterprise API
+### 3.2 External Dependencies
+- GitHub Enterprise API (or GitHub.com)
 - Jenkins Server
 - Artifactory Server
 - Network connectivity to these services
 
-## 5. Deployment Flow
+### 3.3 Optional Dependencies
+- AgentOps framework (for IDE integration)
+- None for standalone CLI usage
 
-### 5.1 Initial Setup
+## 4. Deployment Flow
 
-1. **Deploy OSS Compliance Service:**
+### 4.1 Standalone CLI Deployment
+
+1. **Clone Repository:**
    ```bash
-   cd projects/oss-compliance-webapp
-   # Option A: Local
-   python app.py
-   
-   # Option B: Container
-   docker build -t oss-compliance-service .
-   docker run -p 5000:5000 oss-compliance-service
+   cd projects/oss-skill
    ```
 
-2. **Install Skill via AgentOps:**
+2. **Install Dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Configure:**
+   - Create or edit `config.yaml`
+   - Set GitHub, Jenkins, Artifactory credentials
+
+4. **Run:**
+   ```bash
+   python oss_check.py <repo> [options]
+   ```
+
+### 4.2 AgentOps Skill Deployment
+
+1. **Install Skill via AgentOps:**
    ```bash
    cd AgentOps
    bash scripts/apply-skills.sh \
@@ -296,112 +299,189 @@ Response:
      --path 'engineering/oss-check'
    ```
 
-3. **Configure Skill:**
+2. **Configure Skill:**
    - Edit `.agents/skills/engineering/oss-check/config.yaml`
-   - Set service URL to point to deployed service
    - Configure GitHub, Jenkins, Artifactory credentials
 
-### 5.2 Runtime Flow
+3. **Invoke:**
+   ```
+   @oss-check fusion-stage
+   ```
 
-1. User invokes: `@oss-check fusion-stage`
-2. AI assistant loads skill configuration
-3. Skill makes HTTP POST to OSS Compliance Service
-4. Service downloads repo, scans, incorporates Jenkins evidence
-5. Service returns JSON results
-6. Skill formats results as table/display
-7. User sees compliance summary
+### 4.3 Runtime Flow
 
-## 6. Distribution Strategy
+1. User invokes skill (CLI or IDE)
+2. Skill loads configuration from config.yaml
+3. Skill detects manifest files in repository
+4. Skill parses manifests and extracts components
+5. Skill analyzes registry configuration
+6. Optionally, skill fetches Jenkins runtime evidence
+7. Skill assesses compliance status
+8. Skill generates findings and recommendations
+9. Skill formats and displays results
 
-### 6.1 Skill Distribution
+## 5. Distribution Strategy
+
+### 5.1 Standalone CLI Distribution
+- **As Python Package:**
+  - Publish to internal PyPI
+  - Install via `pip install oss-check`
+  - Run as module: `oss-check <repo> [options]`
+
+- **As Archive:**
+  - Distribute as tarball/zip
+  - Users extract and run directly
+  - No installation required
+
+### 5.2 AgentOps Skill Distribution
 - **Via AgentOps:** Skill is part of AgentOps global skills
 - **Installation:** Standard AgentOps skill installation
 - **Updates:** Via AgentOps release mechanism
-- **Size:** Minimal (just wrapper script + config)
+- **Size:** Moderate (scanning logic + ecosystem scanners)
 
-### 6.2 Service Distribution
-- **As Docker Image:**
-  - Publish to internal container registry
-  - Versioned tags (e.g., `oss-compliance-service:1.0.0`)
-  - Users pull and run image
-  
-- **As Python Package:**
-  - Publish to internal PyPI
-  - Install via `pip install oss-compliance-service`
-  - Run as module: `python -m oss_compliance_service`
+### 5.3 Documentation
+- Installation guide for standalone and AgentOps usage
+- Configuration reference
+- Troubleshooting guide
+- API documentation for GitHub, Jenkins, Artifactory integrations
 
-- **Documentation:**
-  - Installation guide for local vs container deployment
-  - Configuration requirements
-  - Troubleshooting guide
+## 6. Compliance Statuses
 
-### 6.3 Version Compatibility
-- Skill version tracks compatible service versions
-- Service API versioning to prevent breaking changes
-- Skill includes service version requirement in config
+### 6.1 Status Definitions
 
-## 7. Migration Path
+**COMPLIANT:**\- Repository-level registry configuration matches expected Artifactory endpoint
+- Component is compliant at source
 
-### Phase 1: Immediate (Current State)
-- Keep `simple_oss_check.py` in `projects/oss-skill/`
-- Document that it requires `oss-compliance-webapp` to be available locally
-- Update documentation to clarify current architecture
+**COMPLIANT_RUNTIME:**\- Repository-level configuration does not match expected endpoint
+- Jenkins runtime evidence shows component is sourced from compliant Artifactory host
+- Component is compliant at runtime (via CI/CD proxy)
 
-### Phase 2: Service API Development
-- Add REST API endpoints to `oss-compliance-webapp`
-- Ensure scanner can be invoked programmatically
-- Add proper error handling and JSON responses
+**TRANSLATED:**\- Repository-level configuration does not match expected endpoint
+- Jenkins runtime evidence shows component is sourced from Artifactory proxy
+- Component is translated through Jenkins proxy to compliant endpoint
 
-### Phase 3: Skill Migration
-- Move `simple_oss_check.py` to AgentOps skill directory
-- Update to call service API instead of importing scanner
-- Update SKILL.md to reflect service-based architecture
-- Update config.yaml to include service URL
+**NON_COMPLIANT:**\- Repository-level configuration does not match expected endpoint
+- No Jenkins runtime evidence found
+- Component is non-compliant
 
-### Phase 4: Distribution
-- Package service as Docker image
-- Publish installation documentation
-- Update AgentOps skill distribution
+### 6.2 Status Determination Logic
 
-## 8. Security Considerations
+1. **Initial Assessment:**
+   - Check repository-level registry configuration (npmrc, pip.conf, etc.)
+   - If matches expected Artifactory endpoint → COMPLIANT
+   - If does not match → NON_COMPLIANT (pending Jenkins evidence)
+
+2. **Jenkins Evidence Application:**
+   - If Jenkins evidence shows component from allowed Artifactory host:
+     - If host is expected endpoint → COMPLIANT_RUNTIME
+     - If host is proxy → TRANSLATED
+   - If no Jenkins evidence → NON_COMPLIANT
+
+3. **Artifactory Allowlist:**
+   - Check if runtime evidence host is in `artifactory.allowed_hosts`
+   - Only allowlist hosts are considered for COMPLIANT_RUNTIME/TRANSLATED status
+
+## 7. Security Considerations
 
 1. **Credentials:**
-   - GitHub, Jenkins, Artifactory credentials stored in skill config
-   - Use environment variables where possible
-   - Never log credentials
+   - GitHub, Jenkins, Artifactory credentials stored in config.yaml
+   - Use environment variables where possible (preferred)
+   - Never log credentials in output
+   - Config file should not be committed to version control
 
-2. **Service Security:**
-   - If deployed publicly, require authentication
-   - Use HTTPS for service communication
-   - Rate limiting to prevent abuse
-
-3. **Network Security:**
-   - Service needs access to GitHub, Jenkins, Artifactory
+2. **Network Security:**
+   - Skill needs access to GitHub, Jenkins, Artifactory APIs
    - Configure firewall rules appropriately
    - Use internal network when possible
+   - HTTPS required for all API communications
 
-## 9. Monitoring and Observability
+3. **Artifactory Access:**
+   - Credentials must have read access to virtual repositories
+   - Allowlist hosts should be validated
+   - Regular review of allowed hosts list
 
-1. **Service Logging:**
-   - Log scan requests and results
-   - Track performance metrics
+## 8. Monitoring and Observability
+
+1. **Logging:**
+   - Log scan phases and progress
+   - Track component counts and compliance status
    - Error logging for troubleshooting
+   - Debug logs for API calls
 
-2. **Skill Logging:**
-   - Log API calls to service
-   - Track user invocations
-   - Error handling
+2. **Metrics:**
+   - Scan duration per phase
+   - Component counts by ecosystem
+   - Jenkins jobs analyzed vs. matched
+   - Runtime configs found
+   - Compliance percentages
 
-3. **Metrics:**
-   - Scan success/failure rates
-   - Scan duration
-   - Service health checks
+3. **Output:**
+   - Summary table with key metrics
+   - Detailed findings in verbose mode
+   - JSON output for integration with other tools
 
-## 10. Future Enhancements
+## 9. Future Enhancements
 
-1. **Async Scanning:** Support long-running scans with status polling
-2. **Batch Scanning:** Scan multiple repos in single request
-3. **Caching:** Cache results to avoid redundant scans
-4. **Webhook Support:** Notify on scan completion
-5. **Result Storage:** Store historical scan results
-6. **Integration with CI/CD:** GitHub Actions, Jenkins pipeline integration
+1. **Additional Ecosystems:**
+   - Docker (Dockerfile, docker-compose.yml)
+   - Ruby (Gemfile, Gemfile.lock)
+   - PHP (composer.json, composer.lock)
+   - Rust (Cargo.toml, Cargo.lock)
+
+2. **Enhanced Jenkins Integration:**
+   - Support for Jenkins Pipeline as Code
+   - Multi-branch pipeline support
+   - Jenkinsfile parsing
+
+3. **Caching:**
+   - Cache GitHub API responses
+   - Cache Jenkins job listings
+   - Cache manifest parsing results
+
+4. **Batch Operations:**
+   - Scan multiple repositories in single run
+   - Scan multiple branches/tags
+
+5. **CI/CD Integration:**
+   - GitHub Actions integration
+   - Jenkins pipeline integration
+   - GitLab CI integration
+
+6. **Reporting:**
+   - HTML report generation
+   - Historical trend analysis
+   - Compliance dashboard
+
+7. **Performance:**
+   - Parallel manifest parsing
+   - Parallel Jenkins job analysis
+   - Incremental scanning (only changed files)
+
+## 10. Implementation Status
+
+### Completed Features
+- ✅ Self-contained scanning implementation (Option A)
+- ✅ Multi-ecosystem support (NPM, Python, Maven, Go)
+- ✅ GitHub API integration with large file handling
+- ✅ Jenkins integration with multi-strategy job matching
+- ✅ Jenkins runtime evidence extraction
+- ✅ Artifactory allowlist support
+- ✅ Compliance status assessment (COMPLIANT, COMPLIANT_RUNTIME, TRANSLATED, NON_COMPLIANT)
+- ✅ Optional transitive dependency parsing
+- ✅ Flexible output formats (terminal, markdown, JSON)
+- ✅ Configuration via YAML with environment variable support
+
+### Known Limitations
+- GitHub Enterprise raw endpoint may truncate very large files (>10MB)
+- Transitive dependency parsing limited to lockfiles (package-lock.json, yarn.lock, pnpm-lock.yaml)
+- Jenkins job matching may miss jobs with non-standard naming conventions
+- No caching of API responses
+- No historical scan result storage
+
+### Testing Recommendations
+- Test against repositories with various ecosystem combinations
+- Test with and without Jenkins evidence
+- Test with transitive deps enabled and disabled
+- Test large file handling (>1MB lockfiles)
+- Test with multiple Artifactory hosts in allowlist
+- Test error handling (missing files, API failures, etc.)
