@@ -228,3 +228,24 @@ If user requests JSON, return a JSON object with fields:
 - Add `.npmrc` with Artifactory registry.
 - Add `publishConfig.registry` to backend package.json.
 ```
+
+## Performance and automation
+
+- Prefer `gh api --hostname <host>` (uses existing CLI auth) over platform-native GitHub calls that may prompt.
+- Use Git Trees API with `recursive=1` to reduce network round-trips and capture nested manifests reliably.
+- Fetch file bodies with `Accept: application/vnd.github.v3.raw` to avoid base64 handling on some shells.
+- Pin scans to a specific commit SHA (resolve default branch HEAD when `--ref` omitted) and display it in output; use the SHA to key a local cache.
+- Scope Jenkins evidence to the branch derived from `--ref` and fetch only `job/<repo>/job/<branch>/lastSuccessfulBuild/consoleText`; grep narrow patterns like `npm config set registry|NPM_CONFIG_REGISTRY|\.npmrc|artifactory`.
+- To minimize prompts in IDEs, allowlist read-only commands such as:
+  - `gh api --hostname eos2git.cec.lab.emc.com /repos/*`
+  - `gh api --hostname eos2git.cec.lab.emc.com /repos/*/git/trees*`
+  - `gh api --hostname eos2git.cec.lab.emc.com /repos/*/contents*`
+  - `Invoke-WebRequest -Uri https://osj-isg-03-prd.cec.delllabs.net/*`
+- Use a local repo path as `target` when available to avoid network calls entirely.
+
+## Environment-based credentials
+
+- Do not store GitHub or Jenkins tokens in `config.yaml`.
+- Use gh CLI authentication for GitHub requests.
+- Set Jenkins credentials via environment variables (recommended):
+  - `JENKINS_URL`, `JENKINS_USER`, `JENKINS_TOKEN`
